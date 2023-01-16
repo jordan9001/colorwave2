@@ -8,7 +8,6 @@
 
 #include "colorcontrol.h"
 
-#define NUM_PX 109
 #define PX_PIN 23   // GPIO23
 
 #define REFRESH_DELAY     18   // in ms
@@ -92,26 +91,6 @@ error:
 }
 
 void loop() {
-
-  //DBG test just cycle color
-  uint32_t c = 0x00002000;
-  for (int i = 0; i < NUM_PX; i++) {
-    if (i > 0) {
-      // clear previous
-      px.setPixelColor(i-1, 0);
-    }
-    px.setPixelColor(i, c);
-    px.show();
-    delay(REFRESH_DELAY);
-  }
-
-  px.clear();
-  px.show();
-  delay(LONG_DELAY);
-
-  return;
-
-  //TODO actual logic ---- 
   static color_context ctx = {};
   static uint16_t check_counter = LONG_DELAY_FRAMES;
 
@@ -121,6 +100,7 @@ void loop() {
     if (freshctx && ctxmux.try_lock()) {
       // should probably disable interrupts during this?
       if (freshctx) {
+        destroyctx(&ctx);
         ctx = *const_cast<color_context*>(&newctx); // copy that over
         freshctx = false;
       }

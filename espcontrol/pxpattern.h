@@ -13,11 +13,11 @@ typedef struct {
     uint8_t g;
     uint8_t r;
     uint8_t b;
-} pattern_color;
+} color;
 
 typedef struct {
     uint16_t n;                 // nth pixel
-    pattern_color c;
+    color c;
 } pattern_gradpoint;
 
 // defines a gradient by having points of colors along
@@ -49,8 +49,8 @@ typedef struct {
 
 // represents a line of color
 typedef struct {
-    pattern_color c1;
-    pattern_color c2;
+    color c1;
+    color c2;
 } pattern_colorrange;
 
 typedef struct {
@@ -81,13 +81,13 @@ typedef struct {
     uint16_t sizespot_min;      // diameter of the spot
     uint16_t sizespot_max;
     uint8_t spot_typeflags;
-    pattern_color bg;
+    color bg;
     pattern_palette colors;
 } pattern_popping;
 
 //TODO racer spots that zip around with velocity
 
-
+#define PATTERN_TYPE_NONE           0
 #define PATTERN_TYPE_GRADIENT       1
 #define PATTERN_TYPE_ANIGRADIENT    2
 #define PATTERN_TYPE_RANDGRADIENT   3
