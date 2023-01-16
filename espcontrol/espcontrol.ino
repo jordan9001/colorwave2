@@ -11,6 +11,7 @@
 #define PX_PIN 23   // GPIO23
 
 #define REFRESH_DELAY     20   // in ms
+#define LONG_DELAY        3300
 
 Adafruit_NeoPixel px(NUM_PX, PX_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -77,6 +78,8 @@ error:
 }
 
 void loop() {
+  static color_context ctx = {};
+
   //DBG test just cycle color
   uint32_t c = 0x00002000;
   for (int i = 0; i < NUM_PX; i++) {
@@ -91,6 +94,21 @@ void loop() {
 
   px.clear();
   px.show();
-  delay(900);
-  //TODO actual logic
+  delay(LONG_DELAY);
+
+
+  //TODO actual logic ---- 
+
+  // check for update to context from a parsed packet
+  //TODO
+
+  // render a frame from the context
+  uint16_t frame_sleep = get_frame(px, &ctx);
+  if (frame_sleep == 0) {
+    // 0 means no planned update, so just loop for a while, so we can come back and check for an update
+    delay(LONG_DELAY);
+    return;
+  }
+
+  delay(REFRESH_DELAY * frame_sleep);
 }

@@ -11,6 +11,18 @@ void parse_gradientpkt(pattern_gradient* data, uint16_t len) {
         return;
     }
 
+    uint16_t num_pts = data->n;
+
+    if (num_pts * sizeof(data->pts[0]) > len) {
+        dbgf("Tried to parse gradient packet with gradpoints off the end of the buffer: %d %d\n", num_pts, len);
+        return;
+    }
+
+    // save this gradient
+    for (int i = 0; i < num_pts; i++) {
+        //TODO
+    }
+
     dbgf("TODO unimplemented parser");
 }
 

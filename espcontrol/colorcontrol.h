@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+typedef struct {
+    //TODO
+} color_context;
+
 void parse_packet(uint8_t* data, uint16_t len);
 
 #endif
