@@ -1,6 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <WiFi.h>
 #include <AsyncUDP.h>
+#include <mutex>
 
 #include "private.h"
 #include "dbg.h"
@@ -10,12 +11,17 @@
 #define NUM_PX 109
 #define PX_PIN 23   // GPIO23
 
-#define REFRESH_DELAY     20   // in ms
-#define LONG_DELAY        3300
+#define REFRESH_DELAY     18   // in ms
+#define LONG_DELAY        2700
+#define LONG_DELAY_FRAMES (LONG_DELAY / REFRESH_DELAY)
 
 Adafruit_NeoPixel px(NUM_PX, PX_PIN, NEO_GRB + NEO_KHZ800);
 
 AsyncUDP udp;
+
+std::mutex ctxmux;
+volatile color_context newctx;
+volatile bool freshctx = false;
 
 void setup() {
 
@@ -65,7 +71,15 @@ void setup() {
 
     dbgf("Got packet of length %d\n", len);
 
-    parse_packet(packet.data(), len);
+    if (ctxmux.try_lock()) {
+      freshctx = parse_packet(packet.data(), len, const_cast<color_context*>(&newctx));
+      ctxmux.unlock();
+    }
+    else {
+      // Could happen if ISR hits during check
+      dbgl("Refusing to parse packet, because lock is taken");
+      // for now just wait for resend I guess
+    }
   });
 
 
@@ -78,7 +92,6 @@ error:
 }
 
 void loop() {
-  static color_context ctx = {};
 
   //DBG test just cycle color
   uint32_t c = 0x00002000;
@@ -96,19 +109,34 @@ void loop() {
   px.show();
   delay(LONG_DELAY);
 
+  return;
 
   //TODO actual logic ---- 
+  static color_context ctx = {};
+  static uint16_t check_counter = LONG_DELAY_FRAMES;
 
   // check for update to context from a parsed packet
-  //TODO
+  if (check_counter <= 0) {
+    check_counter = LONG_DELAY_FRAMES;
+    if (freshctx && ctxmux.try_lock()) {
+      // should probably disable interrupts during this?
+      if (freshctx) {
+        ctx = *const_cast<color_context*>(&newctx); // copy that over
+        freshctx = false;
+      }
+      ctxmux.unlock();
+    }
+  }
 
   // render a frame from the context
-  uint16_t frame_sleep = get_frame(px, &ctx);
-  if (frame_sleep == 0) {
+  uint16_t frame_sleep = get_frame(&px, &ctx);
+  if (frame_sleep == 0 || frame_sleep > LONG_DELAY_FRAMES) {
     // 0 means no planned update, so just loop for a while, so we can come back and check for an update
     delay(LONG_DELAY);
+    check_counter = 0;
     return;
   }
 
   delay(REFRESH_DELAY * frame_sleep);
+  check_counter -= frame_sleep;
 }

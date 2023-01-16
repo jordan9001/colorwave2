@@ -96,6 +96,7 @@ typedef struct {
 // main definition for a pattern
 typedef struct {
     uint8_t type;
+    uint16_t timeout;   // in seconds (max 18 hrs) (0 is no timeout)
     union {
         pattern_gradient grad;
         pattern_anigradient anigrad;
