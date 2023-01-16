@@ -72,7 +72,7 @@ static bool parse_poppingpkt(pattern_popping* data, uint16_t len, color_context*
 }
 
 bool parse_packet(uint8_t* data, uint16_t len, color_context* ctx) {
-    if (len < sizeof(pattern)) {
+    if (len < offsetof(pattern, grad)) {
         dbgf("Tried to parse packet smaller than min pattern: %d\n", len);
         return false;
     }
@@ -189,10 +189,14 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx) {
 
     // based on the current type, get_frame works differently
 
-    if (ctx->type == PATTERN_TYPE_GRADIENT) {
+    if (ctx->type == PATTERN_TYPE_NONE) {
+        return 0;
+    }
+    else if (ctx->type == PATTERN_TYPE_GRADIENT) {
         render_grad(&ctx->gradient, line1, NUM_PX);
         write_colors(px, line1, NUM_PX);
-    } else {
+    }
+    else {
         dbgf("Unimplemented get_frame for type %d\n", ctx->type);
         return 0;
     }

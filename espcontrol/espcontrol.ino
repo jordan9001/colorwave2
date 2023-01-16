@@ -60,7 +60,8 @@ void setup() {
   // this uses upd multicast on the local network
   // if we wanted this to be more generic we could just poll some server for updates, but eh
   // setup the async udp listener
-  if (!udp.listenMulticast(IPAddress(239,3,6,9), 369)) {
+  
+  if (!udp.listenMulticast(IPAddress(239,3,6,9), 3690)) {
     dbgl("Unable to listen for multicast!");
     goto error;
   }
@@ -80,7 +81,6 @@ void setup() {
       // for now just wait for resend I guess
     }
   });
-
 
   dbgl("Initialized");
   return;
