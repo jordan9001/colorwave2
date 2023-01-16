@@ -93,6 +93,7 @@ error:
 void loop() {
   static color_context ctx = {};
   static uint16_t check_counter = LONG_DELAY_FRAMES;
+  static uint16_t delta_steps = 0;
 
   // check for update to context from a parsed packet
   if (check_counter <= 0) {
@@ -109,14 +110,17 @@ void loop() {
   }
 
   // render a frame from the context
-  uint16_t frame_sleep = get_frame(&px, &ctx);
+  uint16_t frame_sleep = get_frame(&px, &ctx, delta_steps);
+  delta_steps = 0;
   if (frame_sleep == 0 || frame_sleep > LONG_DELAY_FRAMES) {
     // 0 means no planned update, so just loop for a while, so we can come back and check for an update
     delay(LONG_DELAY);
+    delta_steps += LONG_DELAY_FRAMES;
     check_counter = 0;
     return;
   }
 
   delay(REFRESH_DELAY * frame_sleep);
   check_counter -= frame_sleep;
+  delta_steps += frame_sleep;
 }

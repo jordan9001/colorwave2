@@ -38,7 +38,7 @@ typedef struct {
 typedef struct {
     uint16_t duration;          // time till next keyframe
     uint8_t blend;              // how to fade to next keyframe
-    uint8_t data[];             // is an array of packed pattern_gradient
+    pattern_gradient grad;
 } pattern_aniframe;
 
 // an animation that just fades between the provided gradients in a loop with blending options
