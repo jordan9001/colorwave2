@@ -48,6 +48,8 @@ typedef struct {
 } pattern_anigradient;
 
 // represents a line of color
+// because our lerp is just rgb linear it gets lots of greys
+// so don't use wide ranging color ranges, prefer small ranges or ranges that just vary intensity
 typedef struct {
     color c1;
     color c2;

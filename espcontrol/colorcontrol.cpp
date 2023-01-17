@@ -5,6 +5,8 @@
 
 #include <Arduino.h>
 
+static void randgrad(cctx_palette* colors, cctx_gradient* grad, uint16_t numpts, uint16_t len);
+
 static bool parse_gradient(pattern_gradient* data, uint16_t len, cctx_gradient* out, uint8_t** next) {
     if (len < sizeof(pattern_gradient)) {
         dbgf("Tried to parse packet smaller than min pattern_gradient: %d\n", len);
@@ -106,8 +108,53 @@ static bool parse_randgradientpkt(pattern_randgradient* data, uint16_t len, colo
         return false;
     }
 
-    dbgf("TODO unimplemented parser");
-    return false;
+    uint16_t minpts = data->gradpoints_min;
+    if (minpts == 0) {
+        minpts = 1;
+    }
+    uint16_t maxpts = data->gradpoints_max + 1;
+    if (maxpts <= minpts) {
+        maxpts = minpts+1;
+    }
+    uint16_t mindur = data->duration_min;
+    if (mindur == 0) {
+        mindur = 1;
+    }
+    uint16_t maxdur = data->duration_max + 1;
+    if (maxdur <= mindur) {
+        maxdur = mindur+1;
+    }
+
+    ctx->randgradient.gradpoints_min = minpts;
+    ctx->randgradient.gradpoints_max = maxpts;
+    ctx->randgradient.duration_min = mindur;
+    ctx->randgradient.duration_max = maxdur;
+
+    uint16_t count = data->colors.count;
+    pattern_colorrange* cursor = (pattern_colorrange*)(&data->colors.ranges);
+    uint8_t* end = ((uint8_t*)data) + len;
+
+    if ((((uint8_t*)cursor) + (count * sizeof(pattern_colorrange))) != end) {
+        dbgf("Tried to parse randgradient pkt but the sizes didn't match up: %d %d\n", count, len);
+        return false;
+    }
+
+    pattern_colorrange* colors = new pattern_colorrange[count];
+
+    for (uint16_t i = 0; i < count; i++) {
+        colors[i] = cursor[i];
+    }
+
+    ctx->randgradient.colors.count = count;
+    ctx->randgradient.colors.ranges = colors;
+
+    randgrad(&ctx->randgradient.colors, &ctx->randgradient.frame1, random(minpts, maxpts), NUM_PX);
+    randgrad(&ctx->randgradient.colors, &ctx->randgradient.frame2, random(minpts, maxpts), NUM_PX);
+
+    ctx->randgradient.current_step = 0;
+    ctx->randgradient.current_duration = random(mindur, maxdur);
+
+    return true;
 }
 
 static bool parse_poppingpkt(pattern_popping* data, uint16_t len, color_context* ctx) {
@@ -178,6 +225,33 @@ static void lerp_color(color* c1, color* c2, color* out, uint16_t step, uint16_t
     out->b = (uint8_t)(c1b + db);
 }
 
+static void randcolor(cctx_palette* colors, color* out) {
+    uint16_t i = random(0, colors->count);
+    lerp_color(&colors->ranges[i].c1, &colors->ranges[i].c2, out, random(0, 0x41), 0x40);
+}
+
+static void randgrad(cctx_palette* colors, cctx_gradient* grad, uint16_t numpts, uint16_t len) {
+    color c;
+
+    // need a sorted set of random numbers for the positions
+    std::vector<uint16_t> positions = std::vector<uint16_t>();
+    for (uint16_t i = 0; i < numpts; i++) {
+        positions.push_back(random(0, len));
+    }
+
+    std::sort(positions.begin(), positions.end());
+
+    grad->pts = new pattern_gradpoint[numpts];
+
+    for (uint16_t i = 0; i < numpts; i++) {
+        grad->pts[i].n = positions[i];
+        randcolor(colors, &c);
+        grad->pts[i].c = c;
+    }
+
+    grad->count = numpts;
+}
+
 static void render_grad(cctx_gradient* grad, color* colorarr, uint16_t numpx) {
     // renders the gradient to the colorarr
     if (grad->count == 0) {
@@ -242,6 +316,10 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
     color line2[NUM_PX];
     color mid;
     uint16_t nextframe = 0;
+    uint16_t dur;
+    uint16_t step;
+
+    //TODO timeout
 
     // based on the current type, get_frame works differently
 
@@ -269,8 +347,8 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         }
 
         uint8_t blend = ctx->anigradient.frames[f1].blend;
-        uint16_t dur = ctx->anigradient.frames[f1].duration;
-        uint16_t step = ctx->anigradient.current_step;
+        dur = ctx->anigradient.frames[f1].duration;
+        step = ctx->anigradient.current_step;
 
         if (ctx->anigradient.framecount == 1 || ctx->anigradient.current_step == 0 || blend == AGBLEND_HOLD) {
             // either we only have one gradient
@@ -300,6 +378,40 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         }
         ctx->anigradient.current_step = step;
     }
+    else if (ctx->type == PATTERN_TYPE_RANDGRADIENT) {
+        nextframe = 1;
+
+        step = ctx->randgradient.current_step;
+        dur = ctx->randgradient.current_duration;
+        
+        if (step >= dur) {
+            // alloc new frame2 and just display frame1
+            delete[] ctx->randgradient.frame1.pts;
+            ctx->randgradient.frame1 = ctx->randgradient.frame2;
+
+            randgrad(&ctx->randgradient.colors, &ctx->randgradient.frame2, random(ctx->randgradient.gradpoints_min, ctx->randgradient.gradpoints_max), NUM_PX);
+
+            step = 0;
+            ctx->randgradient.current_duration = random(ctx->randgradient.duration_min, ctx->randgradient.duration_max);
+
+            
+            render_grad(&ctx->randgradient.frame1, line1, NUM_PX);
+            write_colors(px, line1, NUM_PX);
+        }
+        else {
+            // lerp
+            render_grad(&ctx->randgradient.frame1, line1, NUM_PX);
+            render_grad(&ctx->randgradient.frame2, line2, NUM_PX);
+
+            for (uint16_t i = 0; i < NUM_PX; i++) {
+                lerp_color(&line1[i], &line2[i], &mid, step, dur);
+                px->setPixelColor(i, mid.r, mid.g, mid.b);
+            }
+        }
+
+        step += deltat;
+        ctx->randgradient.current_step = step;
+    }
     else {
         dbgf("Unimplemented get_frame for type %d\n", ctx->type);
         return 0;
@@ -313,5 +425,24 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
 void destroyctx(color_context* ctx) {
     if (ctx->type == PATTERN_TYPE_GRADIENT) {
         delete[] ctx->gradient.pts;
+    }
+    else if (ctx->type == PATTERN_TYPE_ANIGRADIENT) {
+        // all the pts and then the frames
+        for (uint16_t i = 0; i < ctx->anigradient.framecount; i++) {
+            delete[] ctx->anigradient.frames[i].gradient.pts;
+        }
+        delete[] ctx->anigradient.frames;
+    }
+    else if (ctx->type == PATTERN_TYPE_RANDGRADIENT) {
+        delete[] ctx->randgradient.colors.ranges;
+        delete[] ctx->randgradient.frame1.pts;
+        delete[] ctx->randgradient.frame2.pts;
+    }
+    else if (ctx->type == PATTERN_TYPE_POPPING) {
+        //TODO
+        // palette
+    }
+    else {
+        dbgf("Got destroy call for unknown ctx type %d\n", ctx->type);
     }
 }

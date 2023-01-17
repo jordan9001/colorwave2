@@ -27,13 +27,31 @@ typedef struct {
 } cctx_anigradient;
 
 typedef struct {
-    uint16_t timeout; // in seconds
+    uint16_t count;
+    pattern_colorrange* ranges;
+} cctx_palette;
+
+typedef struct {
+    uint8_t gradpoints_min;
+    uint8_t gradpoints_max;
+    uint16_t duration_min;
+    uint16_t duration_max;
+    cctx_palette colors;
+    uint16_t current_duration;
+    uint16_t current_step;
+    cctx_gradient frame1;
+    cctx_gradient frame2;
+} cctx_randgradient;
+
+typedef struct {
+    uint16_t timeout; //TODO in seconds
 
     uint8_t type; // PATTERN_TYPE_X
 
     union {
         cctx_gradient gradient;
         cctx_anigradient anigradient;
+        cctx_randgradient randgradient;
     };
 } color_context;
 

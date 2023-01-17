@@ -1,0 +1,18 @@
+{
+    "timeout":5,
+    "pat":{
+        "RandGrad":{
+            "maxpoints": 42,
+            "minpoints": 2,
+            "maxduration": 150,
+            "minduration": 18,
+            "colors": {
+                "ranges": [
+                    [{"g":0, "r":0, "b": 0}, {"g":0, "r": 120, "b": 18}],
+                    [{"g":0, "r":0, "b": 0}, {"g":0, "r": 90, "b": 105}],
+                    [{"g":0, "r":0, "b": 0}, {"g":81, "r": 12, "b": 81}]
+                ]
+            }
+        }
+    }
+}

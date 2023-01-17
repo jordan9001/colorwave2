@@ -101,7 +101,9 @@ void loop() {
     if (freshctx && ctxmux.try_lock()) {
       // should probably disable interrupts during this?
       if (freshctx) {
-        destroyctx(&ctx);
+        if (ctx->type != PATTERN_TYPE_NONE) {
+          destroyctx(&ctx);
+        }
         ctx = *const_cast<color_context*>(&newctx); // copy that over
         freshctx = false;
       }
