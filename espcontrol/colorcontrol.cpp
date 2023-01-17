@@ -164,8 +164,41 @@ static bool parse_poppingpkt(pattern_popping* data, uint16_t len, color_context*
         return false;
     }
 
-    dbgf("TODO unimplemented parser");
-    return false;
+    ctx->popping.frametillspot_max = data->frametillspot_max+1;
+    ctx->popping.frametillspot_min = data->frametillspot_min;
+    ctx->popping.frametillspot = 0;
+
+    ctx->popping.growspot_max = data->growspot_max+1;
+    ctx->popping.growspot_min = data->growspot_min;
+    ctx->popping.sizespot_max = data->sizespot_max+1;
+    ctx->popping.sizespot_min = data->sizespot_min;
+    ctx->popping.spot_typeflags = data->spot_typeflags;
+
+    ctx->popping.bg = data->bg;
+
+    ctx->popping.fadeskip = data->fadeskip;
+    ctx->popping.fadeamt = data->fadeamt;
+    ctx->popping.fadestep = 0;
+
+    uint16_t count = data->colors.count;
+    pattern_colorrange* cursor = (pattern_colorrange*)(&data->colors.ranges);
+    uint8_t* end = ((uint8_t*)data) + len;
+
+    if ((((uint8_t*)cursor) + (count * sizeof(pattern_colorrange))) != end) {
+        dbgf("Tried to parse popping pkt but the sizes didn't match up: %d %d\n", count, len);
+        return false;
+    }
+
+    pattern_colorrange* colors = new pattern_colorrange[count];
+
+    for (uint16_t i = 0; i < count; i++) {
+        colors[i] = cursor[i];
+    }
+
+    ctx->popping.colors.count = count;
+    ctx->popping.colors.ranges = colors;
+
+    return true;
 }
 
 bool parse_packet(uint8_t* data, uint16_t len, color_context* ctx) {
@@ -412,6 +445,62 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         step += deltat;
         ctx->randgradient.current_step = step;
     }
+    else if (ctx->type == PATTERN_TYPE_POPPING) {
+
+
+        //TODO
+        /*
+        nextframe = 1;
+
+        // fade frame (but don't go below bg)
+        if (ctx->popping.fadestep == 0) {
+
+            uint8_t fd = ctx->popping.fadeamt;
+            color bg = ctx->popping.bg;
+
+            for (uint16_t i = 0; i < NUM_PX; i++) {
+                uint32_t clr = px->getPixelColor(i);
+                mid.b = clr & 0xff;
+                mid.g = (clr>>8) & 0xff;
+                mid.r = (clr>>16) & 0xff;
+
+                mid.g -= fd;
+                mid.r -= fd;
+                mid.b -= fd;
+
+                if (mid.g < bg.g) {
+                    mid.g = bg.g;
+                }
+                if (mid.r < bg.r) {
+                    mid.r = bg.r;
+                }
+                if (mid.b < bg.b) {
+                    mid.b = bg.b;
+                }
+
+                px->setPixelColor(i, mid.r, mid.g, mid.b);
+            }
+
+            ctx->popping.fadestep = ctx->popping.fadeskip;
+        } else {
+            ctx->popping.fadestep--;
+        }
+
+        // if we are due to pop one in, do that
+        if (ctx->popping.frametillspot == 0) {
+
+            cctx_spot* spot = new cctx_spot();
+
+            ctx->popping.frametillspot = random(ctx->popping.frametillspot_min, ctx->popping.frametillspot_max);
+            
+            //TODO
+        } else {
+            ctx->popping.frametillspot--;
+        }
+        // grow spots
+        //TODO
+        */
+    }
     else {
         dbgf("Unimplemented get_frame for type %d\n", ctx->type);
         return 0;
@@ -441,6 +530,7 @@ void destroyctx(color_context* ctx) {
     else if (ctx->type == PATTERN_TYPE_POPPING) {
         //TODO
         // palette
+        // spots
     }
     else {
         dbgf("Got destroy call for unknown ctx type %d\n", ctx->type);

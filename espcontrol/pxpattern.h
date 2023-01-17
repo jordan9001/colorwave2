@@ -75,7 +75,8 @@ typedef struct {
 // spots that randomly flash up
 // full frame fades over time to bg, so as soon as spot is faded in, we forget about it
 typedef struct {
-    uint16_t fadetime;          // number of frames till full fade
+    uint8_t fadeamt;
+    uint16_t fadeskip;
     uint16_t frametillspot_min;
     uint16_t frametillspot_max;
     uint16_t growspot_min;      // allows us to fade spots in over frames

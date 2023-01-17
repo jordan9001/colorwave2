@@ -143,7 +143,8 @@ impl SerAble for RandGradient {
 
 #[derive(Deserialize, Serialize)]
 struct Popping {
-    fadetime: u16,
+    fadeamt: u8,
+    fadeskip: u16,
     maxtillspot: u16,
     mintillspot: u16,
     maxgrowspot: u16,
@@ -157,7 +158,8 @@ struct Popping {
 
 impl SerAble for Popping {
     fn ser(&self, v: &mut Vec<u8>) {
-        v.extend_from_slice(&self.fadetime.to_le_bytes());
+        v.push(self.fadeamt);
+        v.extend_from_slice(&self.fadeskip.to_le_bytes());
         v.extend_from_slice(&self.mintillspot.to_le_bytes());
         v.extend_from_slice(&self.maxtillspot.to_le_bytes());
         v.extend_from_slice(&self.mingrowspot.to_le_bytes());

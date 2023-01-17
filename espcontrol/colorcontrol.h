@@ -44,6 +44,31 @@ typedef struct {
 } cctx_randgradient;
 
 typedef struct {
+    uint16_t pos;
+    uint8_t type;
+    color c;
+    uint16_t sz;
+    uint16_t growtime;
+} cctx_spot;
+
+typedef struct {
+    uint16_t fadeskip;
+    uint8_t fadeamt;
+    uint16_t fadestep;
+    color bg;
+    uint16_t frametillspot_min;
+    uint16_t frametillspot_max;
+    uint16_t frametillspot;
+    uint16_t growspot_min;      // allows us to fade spots in over frames
+    uint16_t growspot_max;
+    uint16_t sizespot_min;      // diameter of the spot
+    uint16_t sizespot_max;
+    uint8_t spot_typeflags;
+    cctx_palette colors;
+    //TODO ring buffer of spots?
+} cctx_popping;
+
+typedef struct {
     uint16_t timeout; //TODO in seconds
 
     uint8_t type; // PATTERN_TYPE_X
@@ -52,6 +77,7 @@ typedef struct {
         cctx_gradient gradient;
         cctx_anigradient anigradient;
         cctx_randgradient randgradient;
+        cctx_popping popping;
     };
 } color_context;
 
