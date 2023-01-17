@@ -446,10 +446,7 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         ctx->randgradient.current_step = step;
     }
     else if (ctx->type == PATTERN_TYPE_POPPING) {
-
-
         //TODO
-        /*
         nextframe = 1;
 
         // fade frame (but don't go below bg)
@@ -489,17 +486,17 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         // if we are due to pop one in, do that
         if (ctx->popping.frametillspot == 0) {
 
-            cctx_spot* spot = new cctx_spot();
+            //cctx_spot* spot = new cctx_spot();
 
-            ctx->popping.frametillspot = random(ctx->popping.frametillspot_min, ctx->popping.frametillspot_max);
+            //ctx->popping.frametillspot = random(ctx->popping.frametillspot_min, ctx->popping.frametillspot_max);
             
             //TODO
         } else {
             ctx->popping.frametillspot--;
         }
+        
         // grow spots
         //TODO
-        */
     }
     else {
         dbgf("Unimplemented get_frame for type %d\n", ctx->type);
