@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #define NUM_PX 109
+#define MAX_SPOTS   (NUM_PX / 2)
 
 typedef struct {
     uint16_t count;
@@ -48,6 +49,7 @@ typedef struct {
     uint8_t type;
     color c;
     uint16_t sz;
+    uint16_t off;
     uint16_t growtime;
 } cctx_spot;
 
@@ -59,13 +61,16 @@ typedef struct {
     uint16_t frametillspot_min;
     uint16_t frametillspot_max;
     uint16_t frametillspot;
-    uint16_t growspot_min;      // allows us to fade spots in over frames
-    uint16_t growspot_max;
+    uint8_t growspot_min;      // allows us to fade spots in over frames
+    uint8_t growspot_max;
     uint16_t sizespot_min;      // diameter of the spot
     uint16_t sizespot_max;
     uint8_t spot_typeflags;
     cctx_palette colors;
-    //TODO ring buffer of spots?
+    // ring buffer of spots
+    cctx_spot spots[MAX_SPOTS];
+    uint16_t spots_next;
+    uint16_t spots_start;
 } cctx_popping;
 
 typedef struct {

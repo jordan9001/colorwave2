@@ -180,6 +180,10 @@ static bool parse_poppingpkt(pattern_popping* data, uint16_t len, color_context*
     ctx->popping.fadeamt = data->fadeamt;
     ctx->popping.fadestep = 0;
 
+    memset(&ctx->popping.spots, 0, sizeof(ctx->popping.spots));
+    ctx->popping.spots_next = 0;
+    ctx->popping.spots_start = 0;
+
     uint16_t count = data->colors.count;
     pattern_colorrange* cursor = (pattern_colorrange*)(&data->colors.ranges);
     uint8_t* end = ((uint8_t*)data) + len;
@@ -235,6 +239,7 @@ bool parse_packet(uint8_t* data, uint16_t len, color_context* ctx) {
     }
     return false;
 }
+
 
 static void lerp_color(color* c1, color* c2, color* out, uint16_t step, uint16_t len) {
     // we don't do any special color lerp with hsv right now, but that would probably be better than this
@@ -348,6 +353,7 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
     color line1[NUM_PX];
     color line2[NUM_PX];
     color mid;
+    uint32_t clr;
     uint16_t nextframe = 0;
     uint16_t dur;
     uint16_t step;
@@ -446,7 +452,6 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         ctx->randgradient.current_step = step;
     }
     else if (ctx->type == PATTERN_TYPE_POPPING) {
-        //TODO
         nextframe = 1;
 
         // fade frame (but don't go below bg)
@@ -456,22 +461,25 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
             color bg = ctx->popping.bg;
 
             for (uint16_t i = 0; i < NUM_PX; i++) {
-                uint32_t clr = px->getPixelColor(i);
+                clr = px->getPixelColor(i);
                 mid.b = clr & 0xff;
                 mid.g = (clr>>8) & 0xff;
                 mid.r = (clr>>16) & 0xff;
 
-                mid.g -= fd;
-                mid.r -= fd;
-                mid.b -= fd;
-
-                if (mid.g < bg.g) {
+                // possible overflow if fd is too high
+                if (mid.g > (bg.g + fd)) {
+                    mid.g -= fd;
+                } else {
                     mid.g = bg.g;
                 }
-                if (mid.r < bg.r) {
+                if (mid.r > (bg.r + fd)) {
+                    mid.r -= fd;
+                } else {
                     mid.r = bg.r;
                 }
-                if (mid.b < bg.b) {
+                if (mid.b > (bg.b + fd)) {
+                    mid.b -= fd;
+                } else {
                     mid.b = bg.b;
                 }
 
@@ -484,19 +492,110 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
         }
 
         // if we are due to pop one in, do that
-        if (ctx->popping.frametillspot == 0) {
+        uint16_t next = ctx->popping.spots_next;
+        uint16_t pushnext = next + 1;
+        if (pushnext == MAX_SPOTS) {
+            pushnext = 0;
+        }
+        uint16_t start = ctx->popping.spots_start;
 
-            //cctx_spot* spot = new cctx_spot();
+        cctx_spot* spt;
+        if (ctx->popping.frametillspot == 0 && pushnext != start) {
+            spt = &ctx->popping.spots[next];
+            next = pushnext;
 
-            //ctx->popping.frametillspot = random(ctx->popping.frametillspot_min, ctx->popping.frametillspot_max);
+            ctx->popping.frametillspot = random(ctx->popping.frametillspot_min, ctx->popping.frametillspot_max);
             
-            //TODO
-        } else {
+            spt->pos = random(0, NUM_PX+1);
+
+            // types
+            uint8_t sptype = (ctx->popping.spot_typeflags & (SPOT_FUZZ | SPOT_SOLID));
+            if (sptype == (SPOT_FUZZ | SPOT_SOLID)) {
+                if (random(0,0x100) & 0x1) {
+                    sptype = SPOT_FUZZ;
+                } else {
+                    sptype = SPOT_SOLID;
+                }
+            }
+            spt->type = sptype;
+
+            randcolor(&ctx->popping.colors, &spt->c);
+
+            spt->sz = random(ctx->popping.sizespot_min, ctx->popping.sizespot_max);
+            spt->off = spt->sz / 2;
+            spt->growtime = random(ctx->popping.growspot_min, ctx->popping.growspot_max);
+            // scale color by growtime
+            if (spt->growtime > 0) {
+                spt->c.g /= spt->growtime;
+                spt->c.r /= spt->growtime;
+                spt->c.b /= spt->growtime;
+            }
+        } else if (ctx->popping.frametillspot != 0) {
             ctx->popping.frametillspot--;
         }
-        
-        // grow spots
-        //TODO
+
+        // grow spots and get rid of live ones
+        for (uint16_t i = start; i != next; i = (i+1 >= MAX_SPOTS) ? 0 : i+1) {
+            spt = &ctx->popping.spots[i];
+
+            // add it's growing
+            int16_t p = spt->pos;
+            int16_t o = spt->off;
+            int16_t n = p - o;
+            int16_t e = n + spt->sz;
+            for (; n < e; n++) {
+                
+                if (n < 0) {
+                    continue;
+                }
+                if (n >= NUM_PX) {
+                    break;
+                }
+
+                clr = px->getPixelColor(n);
+                mid.b = clr & 0xff;
+                mid.g = (clr>>8) & 0xff;
+                mid.r = (clr>>16) & 0xff;
+
+                if (spt->type == SPOT_SOLID || o == 0) {
+                    mid.g += spt->c.g;
+                    mid.r += spt->c.r;
+                    mid.b += spt->c.b;
+                } else {
+                    // need to feather to center
+                    int16_t d = n - p;
+                    if (d < 0) {
+                        d = -d;
+                    }
+
+                    mid.g += spt->c.g * d / o;
+                    mid.r += spt->c.r * d / o;
+                    mid.b += spt->c.b * d / o;
+                }
+
+                px->setPixelColor(n, mid.r, mid.g, mid.b);
+            } 
+
+            // clear this one if it is done
+            if (spt->growtime == 0) {
+                if (i != start) {
+                    // gotta swap the live one into this spot
+                    *spt = ctx->popping.spots[start];
+                }
+
+                // progress the ring
+                start++;
+                if (start >= MAX_SPOTS) {
+                    start = 0;
+                }
+
+            } else {
+                spt->growtime--;
+            }
+        }
+
+        ctx->popping.spots_start = start;
+        ctx->popping.spots_next = next;
     }
     else {
         dbgf("Unimplemented get_frame for type %d\n", ctx->type);
@@ -527,7 +626,6 @@ void destroyctx(color_context* ctx) {
     else if (ctx->type == PATTERN_TYPE_POPPING) {
         //TODO
         // palette
-        // spots
     }
     else {
         dbgf("Got destroy call for unknown ctx type %d\n", ctx->type);

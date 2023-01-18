@@ -79,8 +79,8 @@ typedef struct {
     uint16_t fadeskip;
     uint16_t frametillspot_min;
     uint16_t frametillspot_max;
-    uint16_t growspot_min;      // allows us to fade spots in over frames
-    uint16_t growspot_max;
+    uint8_t growspot_min;      // allows us to fade spots in over frames
+    uint8_t growspot_max;
     uint16_t sizespot_min;      // diameter of the spot
     uint16_t sizespot_max;
     uint8_t spot_typeflags;

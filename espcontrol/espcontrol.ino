@@ -108,6 +108,7 @@ void loop() {
         freshctx = false;
       }
       ctxmux.unlock();
+      dbgl("Running new packet");
     }
   }
 

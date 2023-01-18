@@ -1,0 +1,23 @@
+{
+    "timeout":5,
+    "pat":{
+        "Popping":{
+            "fadeamt": 3,
+            "fadeskip": 1,
+            "maxtillspot": 30,
+            "mintillspot": 1,
+            "maxgrowspot": 15,
+            "mingrowspot": 3,
+            "maxsize": 18,
+            "minsize": 9,
+            "spottypes": 1,
+            "bg": {"g":0, "r":10, "b":0},
+            "colors": {
+                "ranges": [
+                    [{"g":100, "r":90, "b": 100}, {"g":60, "r": 60, "b": 60}],
+                    [{"g":100, "r":10, "b": 100}, {"g":81, "r": 12, "b": 81}]
+                ]
+            }
+        }
+    }
+}

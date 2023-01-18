@@ -147,8 +147,8 @@ struct Popping {
     fadeskip: u16,
     maxtillspot: u16,
     mintillspot: u16,
-    maxgrowspot: u16,
-    mingrowspot: u16,
+    maxgrowspot: u8,
+    mingrowspot: u8,
     maxsize: u16,
     minsize: u16,
     spottypes: u8,
@@ -162,8 +162,8 @@ impl SerAble for Popping {
         v.extend_from_slice(&self.fadeskip.to_le_bytes());
         v.extend_from_slice(&self.mintillspot.to_le_bytes());
         v.extend_from_slice(&self.maxtillspot.to_le_bytes());
-        v.extend_from_slice(&self.mingrowspot.to_le_bytes());
-        v.extend_from_slice(&self.maxgrowspot.to_le_bytes());
+        v.push(self.mingrowspot);
+        v.push(self.maxgrowspot);
         v.extend_from_slice(&self.minsize.to_le_bytes());
         v.extend_from_slice(&self.maxsize.to_le_bytes());
         v.push(self.spottypes);
