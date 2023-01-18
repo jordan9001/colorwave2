@@ -109,6 +109,7 @@ void loop() {
       }
       ctxmux.unlock();
       dbgl("Running new packet");
+      px->clear();
     }
   }
 

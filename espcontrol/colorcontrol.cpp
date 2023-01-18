@@ -557,6 +557,8 @@ uint16_t get_frame(Adafruit_NeoPixel* px, color_context* ctx, uint16_t deltat) {
                 mid.g = (clr>>8) & 0xff;
                 mid.r = (clr>>16) & 0xff;
 
+                //TODO colors overflow here if background is bright enough
+                // it looks kind of cool, but should probably not happen
                 if (spt->type == SPOT_SOLID || o == 0) {
                     mid.g += spt->c.g;
                     mid.r += spt->c.r;

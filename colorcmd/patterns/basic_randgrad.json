@@ -4,8 +4,8 @@
         "RandGrad":{
             "maxpoints": 42,
             "minpoints": 2,
-            "maxduration": 150,
-            "minduration": 18,
+            "maxduration": 450,
+            "minduration": 180,
             "colors": {
                 "ranges": [
                     [{"g":0, "r":0, "b": 0}, {"g":0, "r": 105, "b": 18}],
