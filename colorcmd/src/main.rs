@@ -236,12 +236,18 @@ fn send_pattern(pat: Pattern) {
     // so let's just try them all
     for interface in NetworkInterface::show().unwrap() {
         if let Some(Addr::V4(V4IfAddr{ip: theip, ..})) = interface.addr {
-            if !theip.is_loopback() {
-                let socket = UdpSocket::bind((theip, 0)).unwrap();
-                let amt = socket.send_to(buf.as_slice(), "239.3.6.9:3690").unwrap();
-            
-                if amt != buf.len() {
-                    println!("Warning: Did not send the full packet on interface at {:?}", theip);
+            if !theip.is_loopback() && !theip.is_link_local() {
+                let socket_res = UdpSocket::bind((theip, 0));
+                if let Ok(socket) = socket_res {
+                    if let Ok(amt) = socket.send_to(buf.as_slice(), "239.3.6.9:3690") {
+                        if amt != buf.len() {
+                            println!("Warning: Did not send the full packet on interface at {:?}, skipping", theip);
+                        }
+                    } else {
+                        println!("Warning: Failed to send on interface {:?}, skipping", theip);
+                    }
+                } else {
+                    println!("Warning: Could not bind to interface {:?}, skipping", theip);
                 }
             }
         }
